@@ -29,7 +29,9 @@ import org.apache.pinot.spi.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 
@@ -41,6 +43,8 @@ public class KafkaPrometheusJSONMessageDecoder implements StreamMessageDecoder<b
     private static final String KEYS_COL = "tags__KEYS";
     private static final String VALUES_COL = "tags__VALUES";
     private static final String LABELS_FIELD = "labels";
+    private static final String TIMESTAMP_FIELD = "timestamp";
+    private static final String DESTINATION_TIMESTAMP_FIELD = "ts";
 
     private RecordExtractor<Map<String, Object>> _jsonRecordExtractor;
 
@@ -69,7 +73,12 @@ public class KafkaPrometheusJSONMessageDecoder implements StreamMessageDecoder<b
                 if (value != null) {
                     value = _jsonRecordExtractor.convert(value);
                 }
-                if (fieldToVal.getKey() == LABELS_FIELD) {
+                if (fieldToVal.getKey() == TIMESTAMP_FIELD) {
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+                    Date date = sdf.parse((String)value);
+                    long millis = date.getTime();
+                    destination.putValue(DESTINATION_TIMESTAMP_FIELD, millis);
+                } else if (fieldToVal.getKey() == LABELS_FIELD) {
                     Map<Object, Object> map = (Map) value;
                     Object[] keys = new Object[map.size()];
                     Object[] values = new Object[map.size()];
